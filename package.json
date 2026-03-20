@@ -9,7 +9,8 @@
     "bun",
     "webtransport",
     "xstate",
-    "lancedb"
+    "libsql"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "bin": "./cli.js"
 }

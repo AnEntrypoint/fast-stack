@@ -144,30 +144,42 @@ npm i busybase
 
 ---
 
-### 5. libsql — Apache Arrow-Backed Vector Database
+### 5. libsql — Embedded SQLite-Compatible Database with Vector Support
 
 **Install**
 ```bash
-npm install @libsql/libsql
-# Yarn users must also add: yarn add apache-arrow
+npm install @libsql/client
 ```
 
 **Starter**
 ```js
-import * as libsql from "@libsql/libsql";
+import { createClient } from "@libsql/client";
 
-const db = await libsql.connect("data/sample-libsql");
-const table = await db.createTable("vectors", [
-  { id: 1, vector: [0.1, 1.0], label: "foo" },
-  { id: 2, vector: [3.9, 0.5], label: "bar" },
-]);
-const results = await table.vectorSearch([0.1, 0.3]).limit(5).toArray();
-console.log(results);
+const db = createClient({ url: "file:local.db" });
+
+await db.execute(`
+  CREATE TABLE IF NOT EXISTS vectors (
+    id    INTEGER PRIMARY KEY,
+    vec   F32_BLOB(3),
+    label TEXT
+  )
+`);
+
+await db.execute({
+  sql: "INSERT INTO vectors VALUES (?, vector(?), ?)",
+  args: [1, "[0.1, 1.0, 0.5]", "foo"],
+});
+
+const { rows } = await db.execute({
+  sql: "SELECT label, vector_distance_cos(vec, vector(?)) AS dist FROM vectors ORDER BY dist LIMIT 5",
+  args: ["[0.1, 0.3, 0.7]"],
+});
+console.log(rows);
 ```
 
-> Indexing, full-text search, SQL filters, S3/GCS/Azure backends, and schema management — research further in the docs.
+> SQL-native vector search, full-text search, remote Turso sync, edge replicas, and schema management — research further in the docs.
 
-**Docs:** https://docs.libsql.com
+**Docs:** https://docs.turso.tech/sdk/ts/reference
 
 ---
 
