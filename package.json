@@ -1,6 +1,6 @@
 {
   "name": "fast-stack-skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Claude Code skill — Direct-to-Runtime Zero-Hop Stack architecture guide",
   "keywords": [
     "claude-skill",
