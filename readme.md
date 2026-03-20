@@ -333,55 +333,38 @@ webjsx.applyDiff(
 
 ---
 
-### 11. Coolify + Traefik — Full-Speed Deployment for WebTransport
+### 11. Coolify + Traefik & Caddy — Full-Speed Deployment for WebTransport
 
-Coolify uses Traefik v2 as its default reverse proxy. Traefik v2 terminates HTTP at Layer 7 and **does not support HTTP/3 or QUIC**. Routing WebTransport through Traefik will downgrade streams to HTTP/1.1 or HTTP/2, destroying full-speed operation.
+WebTransport runs over HTTP/3 (QUIC/UDP). Both Traefik v3 and Caddy support HTTP/3 for regular traffic, but **neither currently forwards WebTransport streams end-to-end to an upstream service** — they terminate QUIC at the proxy and forward via HTTP/1.1 or HTTP/2, which breaks WebTransport.
 
-The correct deployment model is **Traefik bypass**: Bun terminates TLS/QUIC directly on a dedicated port, and that port is exposed raw through the host network — no Traefik involvement.
+The correct model for WebTransport at full speed: **proxy bypass on a dedicated port**. Bun terminates TLS+QUIC natively. The proxy handles all other traffic (HTTP/1.1, HTTP/2, HTTP/3) on port 443.
 
-#### Architecture
+---
 
+#### Option A — Traefik v3 (Coolify default)
+
+Coolify ships Traefik v3 (v3.6+). Traefik v3 supports HTTP/3 on the `websecure` entrypoint — enable it to serve all non-WebTransport routes over QUIC. WebTransport uses a separate Bun port bypassing Traefik entirely.
+
+**Architecture**
 ```
-Client (UDP/QUIC :4443)
-  └─► Host network (UDP passthrough)
-        └─► Bun (terminates TLS + QUIC natively)
-```
-
-Traefik continues to handle all HTTP/1.1 and HTTP/2 traffic (dashboard, APIs, admin) on port 80/443 TCP as normal.
-
-#### Step 1 — Bun server with native TLS
-
-```ts
-// server.ts
-const server = Bun.serve({
-  port: 4443,
-  tls: {
-    cert: Bun.file("/certs/fullchain.pem"),
-    key:  Bun.file("/certs/privkey.pem"),
-  },
-  fetch(req, server) {
-    if (server.upgrade(req)) return;
-    return new Response("fast-stack", { status: 200 });
-  },
-});
+Regular HTTP/1.1 + HTTP/2 + HTTP/3  →  Traefik :443 (TCP+UDP)  →  Bun :3000
+WebTransport QUIC                    →  Host UDP :4443           →  Bun :4443 (TLS-native)
 ```
 
-Use the same certificate Coolify provisions (Let's Encrypt via Traefik). Mount the cert path as a volume.
+**Enable HTTP/3 on Traefik v3 entrypoint**
 
-#### Step 2 — Coolify service configuration
-
-In your Coolify service, set **Network Mode** to `host` or explicitly publish the UDP port:
+In Coolify → Proxy → Traefik → Dynamic Configuration, add:
 
 ```yaml
-# docker-compose override (paste into Coolify's "Docker Compose" field)
-services:
-  app:
-    network_mode: host          # exposes all ports directly — Traefik ignored
-    environment:
-      - PORT=4443
+entryPoints:
+  websecure:
+    address: ":443"
+    http3: {}
 ```
 
-Or, to keep bridge networking and expose only the QUIC port:
+Traefik automatically binds UDP :443 alongside TCP :443 when `http3: {}` is set. No separate UDP entrypoint needed.
+
+**Coolify docker-compose override for WebTransport bypass**
 
 ```yaml
 services:
@@ -390,46 +373,81 @@ services:
       - "4443:4443/udp"
       - "4443:4443/tcp"
     labels:
-      - "traefik.enable=false"
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`yourdomain.com`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+    volumes:
+      - /data/coolify/proxy/certs/yourdomain.com:/certs:ro
 ```
 
-#### Step 3 — Disable Traefik for this service
+**Bun: two listeners**
 
-Add this label to prevent Traefik from intercepting the service:
+```ts
+// HTTP/1.1 + HTTP/2 backend for Traefik (no TLS — Traefik terminates)
+Bun.serve({ port: 3000, fetch: appHandler });
 
-```yaml
-labels:
-  - "traefik.enable=false"
+// WebTransport — TLS-native, bypasses Traefik
+Bun.serve({
+  port: 4443,
+  tls: { cert: Bun.file("/certs/fullchain.pem"), key: Bun.file("/certs/privkey.pem") },
+  fetch: wtHandler,
+});
 ```
 
-#### Step 4 — TLS certificate path
+**Firewall**: open UDP :443 (Traefik HTTP/3) and UDP :4443 (Bun WebTransport).
 
-Coolify stores Let's Encrypt certs at:
+---
 
+#### Option B — Caddy (standalone, no Coolify proxy)
+
+Caddy 2.6+ enables HTTP/3 by default. Like Traefik, Caddy terminates QUIC and cannot forward WebTransport streams — bypass pattern is identical.
+
+**Architecture**
 ```
-/data/coolify/proxy/certs/<your-domain>/
-  fullchain.pem
-  privkey.pem
-```
-
-Mount this into your container:
-
-```yaml
-volumes:
-  - /data/coolify/proxy/certs/yourdomain.com:/certs:ro
+Regular HTTP/1.1 + HTTP/2 + HTTP/3  →  Caddy :443 (TCP+UDP)  →  Bun :3000
+WebTransport QUIC                    →  Host UDP :4443          →  Bun :4443 (TLS-native)
 ```
 
-#### Step 5 — DNS / firewall
+**Caddyfile**
 
-Ensure UDP port 4443 is open on the host firewall and your DNS A record points to the host IP. WebTransport clients connect directly:
+```caddyfile
+{
+  servers {
+    protocols h1 h2 h3
+  }
+}
+
+yourdomain.com {
+  reverse_proxy localhost:3000
+  header Alt-Svc 'h3=":443"; ma=86400'
+}
+```
+
+The `Alt-Svc` header advertises QUIC to browsers so they upgrade to HTTP/3 on subsequent requests. Caddy obtains and renews TLS certificates automatically via ACME.
+
+**Bun: two listeners** (same pattern as Option A — Bun on :3000 plain + :4443 TLS-native)
+
+**Disable Coolify's Traefik if using Caddy**: in Coolify → Settings → Proxy, switch to "None" and run Caddy as a separate service or on the host directly.
+
+**Firewall**: open TCP :80 (ACME), TCP+UDP :443 (Caddy), UDP :4443 (Bun WebTransport).
+
+---
+
+#### WebTransport client (both options)
 
 ```js
 const transport = new WebTransport("https://yourdomain.com:4443/wt");
 await transport.ready;
 ```
 
-#### Why not use Traefik's TCP passthrough?
+#### TLS certificate path (Coolify)
 
-Traefik v2 supports SNI-based TCP passthrough but **not UDP passthrough**. QUIC runs over UDP — TCP passthrough cannot carry it. There is no workaround within Traefik v2; full bypass is required.
+```
+/data/coolify/proxy/certs/<your-domain>/fullchain.pem
+/data/coolify/proxy/certs/<your-domain>/privkey.pem
+```
 
-> Traefik v3 adds experimental HTTP/3 support but Coolify ships v2. Monitor Coolify's roadmap for native HTTP/3 proxy support before relying on Traefik for WebTransport.
+Mount as: `/data/coolify/proxy/certs/yourdomain.com:/certs:ro`
+
+> Neither Traefik v3 nor Caddy currently proxies WebTransport streams to an upstream — both terminate QUIC at the edge. WebTransport bypass to Bun's native QUIC stack is required for full-speed operation regardless of which proxy fronts your other traffic.
