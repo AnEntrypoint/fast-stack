@@ -35,23 +35,27 @@ jobs:
           git commit -m "chore: bump version [skip ci]"
           git push
 
-      - name: Build skill package
+      - name: Build dist
         run: |
-          mkdir -p dist/skills/fast-stack
-          cp *.md dist/skills/fast-stack/
+          mkdir -p dist/skills/fast-stack dist/bin
+          cp readme.md dist/
+          cp -r skills/fast-stack/. dist/skills/fast-stack/
+          cp bin/fast-stack.js dist/bin/fast-stack.js
+          chmod +x dist/bin/fast-stack.js
           node -e "
             const pkg = require('./package.json');
-            const skill = {
+            const dist = {
               name: pkg.name,
               version: pkg.version,
               description: pkg.description,
               keywords: pkg.keywords,
-              files: ['skills'],
-              main: 'skills/fast-stack/readme.md',
               license: pkg.license,
+              main: pkg.main,
+              bin: pkg.bin,
+              files: ['skills', 'bin', 'readme.md'],
               publishConfig: { access: 'public' }
             };
-            require('fs').writeFileSync('dist/package.json', JSON.stringify(skill, null, 2));
+            require('fs').writeFileSync('dist/package.json', JSON.stringify(dist, null, 2));
           "
 
       - name: Publish to npm
