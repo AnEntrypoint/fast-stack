@@ -9,7 +9,16 @@
     "bun",
     "webtransport",
     "xstate",
-    "lancedb"
+    "lancedb",
+    "agent-skill",
+    "agent-skills",
+    "claude-code-skill",
+    "fast-stack",
+    "quic"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "main": "skills/fast-stack/SKILL.md",
+  "files": [
+    "skills/"
+  ]
 }
