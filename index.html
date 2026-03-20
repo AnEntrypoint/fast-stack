@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fast Stack</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#e6edf3;background:#0d1117;padding:40px 20px}
+#content{max-width:860px;margin:0 auto}
+h1{font-size:2em;border-bottom:1px solid #30363d;padding-bottom:.3em;margin:1.5em 0 .5em}
+h2{font-size:1.5em;border-bottom:1px solid #30363d;padding-bottom:.3em;margin:1.5em 0 .5em}
+h3{font-size:1.25em;margin:1.5em 0 .4em;color:#58a6ff}
+h4{font-size:1em;margin:1.2em 0 .3em;color:#79c0ff}
+p{margin:.6em 0}
+a{color:#58a6ff;text-decoration:none}
+a:hover{text-decoration:underline}
+pre{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:16px;overflow-x:auto;margin:1em 0}
+code{font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:.875em}
+:not(pre)>code{background:#6e768166;border-radius:6px;padding:.2em .4em;font-size:.875em}
+blockquote{border-left:4px solid #3d88cc;color:#8b949e;padding:.5em 1em;margin:1em 0;background:#161b22;border-radius:0 6px 6px 0}
+blockquote p{margin:0}
+hr{border:none;border-top:1px solid #30363d;margin:2em 0}
+ul,ol{padding-left:2em;margin:.5em 0}
+li{margin:.2em 0}
+strong{color:#f0f6fc}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #30363d;padding:8px 12px;text-align:left}
+th{background:#161b22;font-weight:600}
+tr:nth-child(even){background:#161b22}
+#error{color:#f85149;background:#161b22;border:1px solid #f8514933;border-radius:8px;padding:20px;font-family:monospace}
+</style>
+</head>
+<body>
+<div id="content"><p style="color:#8b949e;padding:20px">Loading readme.md…</p></div>
+<script>
+marked.setOptions({
+  highlight(code, lang) {
+    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+    return hljs.highlightAuto(code).value;
+  },
+  gfm: true,
+});
+
+fetch('./readme.md')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+  .then(md => { document.getElementById('content').innerHTML = marked.parse(md); })
+  .catch(() => {
+    document.getElementById('content').innerHTML =
+      '<div id="error">Could not load readme.md — serve this file over HTTP.<br><br>' +
+      'Run: <code>bun --hot index.html</code> or any static file server.</div>';
+  });
+</script>
+</body>
+</html>
