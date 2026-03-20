@@ -330,3 +330,106 @@ webjsx.applyDiff(
 > Web Components integration, `applyDiff` diffing strategy, Shadow DOM, and Vite template — research further in the docs.
 
 **Docs:** https://webjsx.org
+
+---
+
+### 11. Coolify + Traefik — Full-Speed Deployment for WebTransport
+
+Coolify uses Traefik v2 as its default reverse proxy. Traefik v2 terminates HTTP at Layer 7 and **does not support HTTP/3 or QUIC**. Routing WebTransport through Traefik will downgrade streams to HTTP/1.1 or HTTP/2, destroying full-speed operation.
+
+The correct deployment model is **Traefik bypass**: Bun terminates TLS/QUIC directly on a dedicated port, and that port is exposed raw through the host network — no Traefik involvement.
+
+#### Architecture
+
+```
+Client (UDP/QUIC :4443)
+  └─► Host network (UDP passthrough)
+        └─► Bun (terminates TLS + QUIC natively)
+```
+
+Traefik continues to handle all HTTP/1.1 and HTTP/2 traffic (dashboard, APIs, admin) on port 80/443 TCP as normal.
+
+#### Step 1 — Bun server with native TLS
+
+```ts
+// server.ts
+const server = Bun.serve({
+  port: 4443,
+  tls: {
+    cert: Bun.file("/certs/fullchain.pem"),
+    key:  Bun.file("/certs/privkey.pem"),
+  },
+  fetch(req, server) {
+    if (server.upgrade(req)) return;
+    return new Response("fast-stack", { status: 200 });
+  },
+});
+```
+
+Use the same certificate Coolify provisions (Let's Encrypt via Traefik). Mount the cert path as a volume.
+
+#### Step 2 — Coolify service configuration
+
+In your Coolify service, set **Network Mode** to `host` or explicitly publish the UDP port:
+
+```yaml
+# docker-compose override (paste into Coolify's "Docker Compose" field)
+services:
+  app:
+    network_mode: host          # exposes all ports directly — Traefik ignored
+    environment:
+      - PORT=4443
+```
+
+Or, to keep bridge networking and expose only the QUIC port:
+
+```yaml
+services:
+  app:
+    ports:
+      - "4443:4443/udp"
+      - "4443:4443/tcp"
+    labels:
+      - "traefik.enable=false"
+```
+
+#### Step 3 — Disable Traefik for this service
+
+Add this label to prevent Traefik from intercepting the service:
+
+```yaml
+labels:
+  - "traefik.enable=false"
+```
+
+#### Step 4 — TLS certificate path
+
+Coolify stores Let's Encrypt certs at:
+
+```
+/data/coolify/proxy/certs/<your-domain>/
+  fullchain.pem
+  privkey.pem
+```
+
+Mount this into your container:
+
+```yaml
+volumes:
+  - /data/coolify/proxy/certs/yourdomain.com:/certs:ro
+```
+
+#### Step 5 — DNS / firewall
+
+Ensure UDP port 4443 is open on the host firewall and your DNS A record points to the host IP. WebTransport clients connect directly:
+
+```js
+const transport = new WebTransport("https://yourdomain.com:4443/wt");
+await transport.ready;
+```
+
+#### Why not use Traefik's TCP passthrough?
+
+Traefik v2 supports SNI-based TCP passthrough but **not UDP passthrough**. QUIC runs over UDP — TCP passthrough cannot carry it. There is no workaround within Traefik v2; full bypass is required.
+
+> Traefik v3 adds experimental HTTP/3 support but Coolify ships v2. Monitor Coolify's roadmap for native HTTP/3 proxy support before relying on Traefik for WebTransport.

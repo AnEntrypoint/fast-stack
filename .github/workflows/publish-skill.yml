@@ -3,24 +3,37 @@ name: Publish Skill to npm
 on:
   push:
     branches: [main, master]
-    paths: ["**.md"]
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+
+      - name: Configure git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Bump patch version
+        run: npm version patch --no-git-tag-version
+
+      - name: Commit and push version bump
+        run: |
+          git add package.json
+          git commit -m "chore: bump version [skip ci]"
+          git push
 
       - name: Build skill package
         run: |
@@ -29,12 +42,13 @@ jobs:
           node -e "
             const pkg = require('./package.json');
             const skill = {
-              name: pkg.name || 'fast-stack-skill',
-              version: pkg.version || '0.1.0',
-              description: pkg.description || 'Claude Code skill for the fast-stack architecture',
-              keywords: ['claude-skill', 'claude-code', 'skill'],
+              name: pkg.name,
+              version: pkg.version,
+              description: pkg.description,
+              keywords: pkg.keywords,
               files: ['skills'],
               main: 'skills/fast-stack/readme.md',
+              license: pkg.license,
               publishConfig: { access: 'public' }
             };
             require('fs').writeFileSync('dist/package.json', JSON.stringify(skill, null, 2));
