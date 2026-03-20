@@ -14,7 +14,7 @@ Multiplexed Streaming (WebTransport): Leverages HTTP/3 (UDP) for bidirectional s
 
 Binary Serialization (Msgpackr): Replaces JSON with highly optimized binary payloads, minimizing network footprint and accelerating decode velocities to preserve CPU cycles for domain logic.
 
-Embedded Columnar Abstraction (Busybase): Functioning as the preferred operational wrapper for LanceDB (npmjs.com/busybase), this package instantiates an Apache Arrow-backed datastore natively within Bun's memory heap. It guarantees zero-hop, high-throughput vector and tabular mutations, permanently negating network ingestion latency.
+Embedded Columnar Abstraction (Busybase): Functioning as the preferred operational wrapper for libsql (npmjs.com/busybase), this package instantiates an Apache Arrow-backed datastore natively within Bun's memory heap. It guarantees zero-hop, high-throughput vector and tabular mutations, permanently negating network ingestion latency.
 
 4. Buildless Hot Reloading (Live-Sync)
 In-Place Memory Mutation: Bun's native filesystem watcher seamlessly updates the active process memory.
@@ -131,32 +131,32 @@ console.log(decoded); // { id: 1, value: [ 0.1, 0.9 ], label: 'vec' }
 
 ---
 
-### 4. Busybase — Embedded Columnar Abstraction (LanceDB Wrapper)
+### 4. Busybase — Embedded Columnar Abstraction (libsql Wrapper)
 
 **Install**
 ```bash
 npm i busybase
 ```
 
-> Busybase wraps LanceDB and Apache Arrow to provide a zero-hop embedded vector + tabular store inside Bun's memory heap. For full API, table schemas, and mutation methods — visit the package page and research further there.
+> Busybase wraps libsql and Apache Arrow to provide a zero-hop embedded vector + tabular store inside Bun's memory heap. For full API, table schemas, and mutation methods — visit the package page and research further there.
 
 **Package:** https://www.npmjs.com/package/busybase
 
 ---
 
-### 5. LanceDB — Apache Arrow-Backed Vector Database
+### 5. libsql — Apache Arrow-Backed Vector Database
 
 **Install**
 ```bash
-npm install @lancedb/lancedb
+npm install @libsql/libsql
 # Yarn users must also add: yarn add apache-arrow
 ```
 
 **Starter**
 ```js
-import * as lancedb from "@lancedb/lancedb";
+import * as libsql from "@libsql/libsql";
 
-const db = await lancedb.connect("data/sample-lancedb");
+const db = await libsql.connect("data/sample-libsql");
 const table = await db.createTable("vectors", [
   { id: 1, vector: [0.1, 1.0], label: "foo" },
   { id: 2, vector: [3.9, 0.5], label: "bar" },
@@ -167,7 +167,7 @@ console.log(results);
 
 > Indexing, full-text search, SQL filters, S3/GCS/Azure backends, and schema management — research further in the docs.
 
-**Docs:** https://docs.lancedb.com
+**Docs:** https://docs.libsql.com
 
 ---
 
