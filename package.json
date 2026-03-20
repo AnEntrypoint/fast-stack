@@ -1,5 +1,5 @@
 {
-  "name": "fast-stack-skill",
+  "name": "xbrw",
   "version": "0.1.5",
   "description": "Claude Code skill — Direct-to-Runtime Zero-Hop Stack architecture guide",
   "keywords": [
@@ -24,6 +24,6 @@
     "readme.md"
   ],
   "bin": {
-    "fast-stack": "bin/fast-stack.js"
+    "xbrw": "bin/fast-stack.js"
   }
 }

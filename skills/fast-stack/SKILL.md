@@ -96,6 +96,8 @@ await transport.ready;
 ## Install
 
 ```bash
+bun x xbrw
+npx xbrw
 npx skills add AnEntrypoint/fast-stack
 ```
 
