@@ -1,0 +1,46 @@
+name: Publish Skill to npm
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**.md"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Build skill package
+        run: |
+          mkdir -p dist/skills/fast-stack
+          cp *.md dist/skills/fast-stack/
+          node -e "
+            const pkg = require('./package.json');
+            const skill = {
+              name: pkg.name || 'fast-stack-skill',
+              version: pkg.version || '0.1.0',
+              description: pkg.description || 'Claude Code skill for the fast-stack architecture',
+              keywords: ['claude-skill', 'claude-code', 'skill'],
+              files: ['skills'],
+              main: 'skills/fast-stack/readme.md',
+              publishConfig: { access: 'public' }
+            };
+            require('fs').writeFileSync('dist/package.json', JSON.stringify(skill, null, 2));
+          "
+
+      - name: Publish to npm
+        run: npm publish dist/ --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
