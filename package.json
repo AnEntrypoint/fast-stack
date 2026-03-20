@@ -1,0 +1,15 @@
+{
+  "name": "fast-stack-skill",
+  "version": "0.1.0",
+  "description": "Claude Code skill — Direct-to-Runtime Zero-Hop Stack architecture guide",
+  "keywords": [
+    "claude-skill",
+    "claude-code",
+    "skill",
+    "bun",
+    "webtransport",
+    "xstate",
+    "lancedb"
+  ],
+  "license": "MIT"
+}
