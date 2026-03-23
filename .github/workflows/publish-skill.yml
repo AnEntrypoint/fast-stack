@@ -37,11 +37,11 @@ jobs:
 
       - name: Build dist
         run: |
-          mkdir -p dist/skills/fast-stack dist/bin
+          mkdir -p dist/skills/zerohop dist/bin
           cp readme.md dist/
-          cp -r skills/fast-stack/. dist/skills/fast-stack/
-          cp bin/fast-stack.js dist/bin/fast-stack.js
-          chmod +x dist/bin/fast-stack.js
+          cp -r skills/zerohop/. dist/skills/zerohop/
+          cp bin/zerohop.js dist/bin/zerohop.js
+          chmod +x dist/bin/zerohop.js
           node -e "
             const pkg = require('./package.json');
             const dist = {

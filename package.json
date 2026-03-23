@@ -1,5 +1,5 @@
 {
-  "name": "xbrw",
+  "name": "zerohop",
   "version": "0.1.6",
   "description": "Claude Code skill — Direct-to-Runtime Zero-Hop Stack architecture guide",
   "keywords": [
@@ -14,16 +14,17 @@
     "agent-skills",
     "claude-code-skill",
     "fast-stack",
-    "quic"
+    "quic",
+    "zerohop"
   ],
   "license": "MIT",
-  "main": "skills/fast-stack/SKILL.md",
+  "main": "skills/zerohop/SKILL.md",
   "files": [
     "skills/",
     "bin/",
     "readme.md"
   ],
   "bin": {
-    "xbrw": "bin/fast-stack.js"
+    "zerohop": "bin/zerohop.js"
   }
 }

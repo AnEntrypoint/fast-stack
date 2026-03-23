@@ -284,7 +284,7 @@ export default { plugins: [tailwindcss()] };
 **Starter**
 ```html
 <div class="flex items-center gap-4 p-4 bg-gray-900 text-white rounded-xl">
-  <span class="text-xl font-bold">Fast Stack</span>
+  <span class="text-xl font-bold">Zero-Hop Stack</span>
 </div>
 ```
 

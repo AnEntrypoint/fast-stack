@@ -1,9 +1,9 @@
 ---
-name: fast-stack
+name: zerohop
 description: Direct-to-Runtime Zero-Hop Stack — Bun + WebTransport + XState + LanceDB architecture. Use when building high-frequency data apps, real-time streaming UIs, or deploying to Coolify with Traefik/Caddy. Covers stack setup, WebTransport bypass pattern, and proxy config.
 ---
 
-# Fast Stack
+# Zero-Hop Stack
 
 Single-process architecture: Bun serves HTTP + WebTransport, stores data in embedded LanceDB/libsql (Apache Arrow), orchestrates state with XState, renders with WebJSX — zero hops between layers.
 
@@ -96,9 +96,9 @@ await transport.ready;
 ## Install
 
 ```bash
-bun x xbrw
-npx xbrw
-npx skills add AnEntrypoint/fast-stack
+bun x zerohop
+npx zerohop
+npx skills add AnEntrypoint/zerohop
 ```
 
 Docs: readme.md in this repo covers all packages with install snippets and links.
